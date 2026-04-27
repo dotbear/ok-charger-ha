@@ -29,6 +29,7 @@ async def async_setup_entry(
         [
             CurrentPriceSensor(coordinator),
             CheapestWindowStartSensor(coordinator),
+            CheapestWindowEndSensor(coordinator),
             CheapestWindowPriceSensor(coordinator),
             ChargingStateSensor(coordinator),
         ]
@@ -94,6 +95,22 @@ class CheapestWindowStartSensor(_OkSensorBase):
     @property
     def native_value(self) -> dt.datetime | None:
         return self.coordinator.data.cheapest_window_start
+
+
+class CheapestWindowEndSensor(_OkSensorBase):
+    """When the cheapest contiguous N-hour window ends (start + N hours)."""
+
+    _attr_name = "Cheapest window end"
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:clock-end"
+
+    def __init__(self, coordinator: OkChargerCoordinator) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{self._station_id}_cheapest_end"
+
+    @property
+    def native_value(self) -> dt.datetime | None:
+        return self.coordinator.data.cheapest_window_end
 
 
 class CheapestWindowPriceSensor(_OkSensorBase):

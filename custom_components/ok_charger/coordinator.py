@@ -13,6 +13,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import OkApiError, OkAuthError, OkChargerClient  # noqa: F401
 from .const import (
+    CHARGE_DEADLINE_HOUR,
     DEFAULT_CHEAP_HOURS,
     DOMAIN,
     PRICE_REFRESH_INTERVAL,
@@ -49,13 +50,17 @@ class HourlyPrice:
 
     @classmethod
     def from_api(cls, raw: dict[str, Any]) -> HourlyPrice:
+        # The three "*IncludingVat" fields are the all-in customer price
+        # components. The standalone "vat" field is the VAT portion already
+        # baked into electricityPriceIncludingVat — broken out only for the
+        # OK app's price-breakdown UI. Including it here double-counts VAT
+        # (verified against the OK app's displayed prices on 2026-04-27).
         return cls(
             applicable_time=dt.datetime.fromisoformat(raw["applicableTime"]),
             total_ore_per_kwh=(
                 raw.get("tariffIncludingVat", 0)
                 + raw.get("electricityTaxIncludingVat", 0)
                 + raw.get("electricityPriceIncludingVat", 0)
-                + raw.get("vat", 0)
             ),
         )
 
@@ -65,6 +70,7 @@ class CoordinatorData:
     station: ChargingStationState | None = None
     prices: list[HourlyPrice] = field(default_factory=list)
     cheapest_window_start: dt.datetime | None = None
+    cheapest_window_end: dt.datetime | None = None
     cheapest_window_avg_ore: int | None = None
     last_session_refresh: dt.datetime | None = None
     last_price_refresh: dt.datetime | None = None
@@ -110,23 +116,42 @@ class OkChargerCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     def _compute_cheap_window(self, hours: int = DEFAULT_CHEAP_HOURS) -> None:
         prices = self._data.prices
+        self._data.cheapest_window_start = None
+        self._data.cheapest_window_end = None
+        self._data.cheapest_window_avg_ore = None
+
         if len(prices) < hours:
-            self._data.cheapest_window_start = None
-            self._data.cheapest_window_avg_ore = None
             return
-        # Sliding window over consecutive hours, future-only
+
         now = dt.datetime.now(tz=dt.timezone.utc)
-        future = [p for p in prices if p.applicable_time + dt.timedelta(hours=1) > now]
-        if len(future) < hours:
-            self._data.cheapest_window_start = None
-            self._data.cheapest_window_avg_ore = None
-            return
-        best_idx = min(
-            range(len(future) - hours + 1),
-            key=lambda i: sum(p.total_ore_per_kwh for p in future[i : i + hours]),
+        local_now = now.astimezone()
+        deadline_local = local_now.replace(
+            hour=CHARGE_DEADLINE_HOUR, minute=0, second=0, microsecond=0
         )
-        window = future[best_idx : best_idx + hours]
+        if deadline_local <= local_now:
+            deadline_local += dt.timedelta(days=1)
+        deadline = deadline_local.astimezone(dt.timezone.utc)
+
+        # Eligible price hours: start strictly in the future (the automation's
+        # time trigger can't fire on a moment that's already passed), and end
+        # at or before the deadline.
+        one_hour = dt.timedelta(hours=1)
+        eligible = [
+            p
+            for p in prices
+            if p.applicable_time > now
+            and p.applicable_time + one_hour <= deadline
+        ]
+        if len(eligible) < hours:
+            return
+
+        best_idx = min(
+            range(len(eligible) - hours + 1),
+            key=lambda i: sum(p.total_ore_per_kwh for p in eligible[i : i + hours]),
+        )
+        window = eligible[best_idx : best_idx + hours]
         self._data.cheapest_window_start = window[0].applicable_time
+        self._data.cheapest_window_end = window[-1].applicable_time + one_hour
         self._data.cheapest_window_avg_ore = round(
             sum(p.total_ore_per_kwh for p in window) / hours
         )

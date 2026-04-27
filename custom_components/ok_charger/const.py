@@ -45,3 +45,10 @@ SESSION_REFRESH_INTERVAL = timedelta(minutes=10)
 
 # How many cheapest hours to find for the auto-charge sensor
 DEFAULT_CHEAP_HOURS = 4
+
+# Charge-by deadline (local-time hour). Cheapest window calculation is
+# restricted to fully-contained hours in [now, next-occurrence-of-this-hour].
+# Encodes the typical "must be ready to drive by morning" constraint and
+# stops the optimizer from picking tomorrow's daytime solar valley when
+# the user actually wants to charge overnight.
+CHARGE_DEADLINE_HOUR = 8
