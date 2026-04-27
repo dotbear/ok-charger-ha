@@ -1,0 +1,14 @@
+{
+  "domain": "ok_charger",
+  "name": "OK Charger",
+  "codeowners": ["@dotbear"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/dotbear/ok-charger-ha",
+  "homeassistant": "2024.10.0",
+  "integration_type": "device",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/dotbear/ok-charger-ha/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "OK Charger",
+  "render_readme": true,
+  "homeassistant": "2024.10.0",
+  "country": ["DK"]
+}

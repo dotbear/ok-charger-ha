@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Link your OK account",
+        "description": "Use the email + password you use to log into the OK app.",
+        "data": {
+          "email": "Email",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Login was rejected. Double-check your email and password.",
+      "cannot_connect": "Could not reach OK's API. Check your internet connection."
+    },
+    "abort": {
+      "already_configured": "This OK account is already linked."
+    }
+  }
+}

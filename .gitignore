@@ -1,0 +1,22 @@
+# Project-specific (NEVER commit)
+flows*.mitm
+*.apk
+decompiled/
+logs/
+.env
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
