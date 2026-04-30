@@ -11,7 +11,14 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import OkApiError, OkChargerClient
-from .const import CONF_APP_ID, CONF_DEVICE_ID, CONF_EMAIL, CONF_PASSWORD, DOMAIN
+from .const import (
+    CONF_APP_ID,
+    CONF_DEVICE_FRIENDLY_ID,
+    CONF_DEVICE_ID,
+    CONF_EMAIL,
+    CONF_PASSWORD,
+    DOMAIN,
+)
 from .coordinator import OkChargerCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -28,6 +35,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         password=entry.data[CONF_PASSWORD],
         app_id=entry.data[CONF_APP_ID],
         device_id=entry.data[CONF_DEVICE_ID],
+        device_friendly_id=entry.data.get(CONF_DEVICE_FRIENDLY_ID),
     )
 
     coordinator = OkChargerCoordinator(hass, client)

@@ -94,13 +94,14 @@ class OkChargerClient:
         password: str,
         app_id: str,
         device_id: str | None = None,
+        device_friendly_id: str | None = None,
     ) -> None:
         self._session = session
         self._email = email
         self._password = password
         self._app_id = app_id
         self._device_id = device_id
-        self._device_friendly_id: str | None = None
+        self._device_friendly_id = device_friendly_id
         self._user_number: int | None = None
 
     @property
