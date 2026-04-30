@@ -58,7 +58,7 @@ class OkChargerError(OkApiError):
 
 
 def _now_iso() -> str:
-    return dt.datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M:%S%z")
+    return dt.datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def _common_headers() -> dict[str, str]:
@@ -177,21 +177,15 @@ class OkChargerClient:
         path = f"/api/v2/HomeChargingStation/quickreceipt/{charging_token}"
         return await self._emsp_request("GET", path)
 
-    async def start_charge(
-        self,
-        cs_identifier: str,
-        connector_id: int,
-        scheduled_start: dt.datetime | None = None,
-        scheduled_end: dt.datetime | None = None,
-    ) -> dict[str, Any]:
+    async def start_charge(self, cs_identifier: str, connector_id: int) -> dict[str, Any]:
         if not self._device_friendly_id:
             raise OkApiError("start_charge requires device_friendly_id (call refresh_session first)")
         body = {
             "chargingStationId": cs_identifier,
             "connectorId": connector_id,
             "friendlyDeviceId": self._device_friendly_id,
-            "scheduledStart": _format_date(scheduled_start),
-            "scheduledEnd": _format_date(scheduled_end),
+            "scheduledStart": None,
+            "scheduledEnd": None,
         }
         return await self._emsp_request("POST", "/api/v2/HomeChargingStation/start", body)
 
@@ -250,14 +244,5 @@ class OkChargerClient:
                 return json.loads(text)
             except ValueError as exc:
                 raise OkApiError(f"{method} {path} returned non-JSON: {text[:200]}") from exc
-
-
-def _format_date(d: dt.datetime | None) -> str | None:
-    if d is None:
-        return None
-    if d.tzinfo is None:
-        d = d.astimezone()
-    # Match the Java Date kotlinx-serialization format: ISO-8601 with offset
-    return d.strftime("%Y-%m-%dT%H:%M:%S%z")
 
 

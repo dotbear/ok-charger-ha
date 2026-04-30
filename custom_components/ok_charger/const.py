@@ -36,7 +36,6 @@ CONF_EMAIL = "email"
 CONF_PASSWORD = "password"
 CONF_DEVICE_ID = "device_id"
 CONF_DEVICE_FRIENDLY_ID = "device_friendly_id"
-CONF_USER_NUMBER = "user_number"
 
 # Coordinator timing
 SCAN_INTERVAL = timedelta(seconds=30)

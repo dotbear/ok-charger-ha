@@ -9,9 +9,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import OkApiError, OkAuthError, OkChargerClient  # noqa: F401
+from .api import OkApiError, OkAuthError, OkChargerClient
 from .const import (
     CHARGE_DEADLINE_HOUR,
     DEFAULT_CHEAP_HOURS,
@@ -41,6 +42,17 @@ class ChargingStationState:
     # Live state (filled from currentChargings)
     is_charging: bool = False
     charging_token: str | None = None
+
+
+def device_info_for(station: ChargingStationState) -> DeviceInfo:
+    return DeviceInfo(
+        identifiers={(DOMAIN, station.cs_identifier)},
+        manufacturer=station.vendor or "Peblar",
+        model=station.model,
+        sw_version=station.firmware_version,
+        name=station.name,
+        serial_number=station.serial_number,
+    )
 
 
 @dataclass

@@ -25,11 +25,13 @@ import hashlib
 import hmac as _hmac
 import json
 import time
+from functools import lru_cache
 from typing import Any
 
 from .const import APP_SECRET
 
 
+@lru_cache(maxsize=1)
 def _hmac_key(app_id: str) -> bytes:
     return (APP_SECRET + app_id).encode("utf-8")
 

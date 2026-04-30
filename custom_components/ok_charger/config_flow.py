@@ -17,7 +17,6 @@ from .const import (
     CONF_DEVICE_ID,
     CONF_EMAIL,
     CONF_PASSWORD,
-    CONF_USER_NUMBER,
     DOMAIN,
 )
 
@@ -40,14 +39,16 @@ class OkChargerConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                creds = await self._validate(user_input[CONF_EMAIL], user_input[CONF_PASSWORD])
+                user_number, creds = await self._validate(
+                    user_input[CONF_EMAIL], user_input[CONF_PASSWORD]
+                )
             except OkAuthError:
                 errors["base"] = "invalid_auth"
             except OkApiError as exc:
                 _LOGGER.exception("OK API error during setup: %s", exc)
                 errors["base"] = "cannot_connect"
             else:
-                await self.async_set_unique_id(f"ok_charger_{creds[CONF_USER_NUMBER]}")
+                await self.async_set_unique_id(f"ok_charger_{user_number}")
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
                     title=user_input[CONF_EMAIL],
@@ -60,7 +61,7 @@ class OkChargerConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def _validate(self, email: str, password: str) -> dict[str, Any]:
+    async def _validate(self, email: str, password: str) -> tuple[int, dict[str, Any]]:
         session = async_get_clientsession(self.hass)
         app_id = str(uuid.uuid4())
         client = OkChargerClient(
@@ -68,9 +69,8 @@ class OkChargerConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         device_id, friendly = await client.register_device()
         user_number = await client.refresh_session()
-        return {
+        return user_number, {
             CONF_APP_ID: app_id,
             CONF_DEVICE_ID: device_id,
             CONF_DEVICE_FRIENDLY_ID: friendly,
-            CONF_USER_NUMBER: user_number,
         }

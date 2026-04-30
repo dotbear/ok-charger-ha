@@ -11,12 +11,11 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import HourlyPrice, OkChargerCoordinator
+from .coordinator import OkChargerCoordinator, device_info_for
 
 
 async def async_setup_entry(
@@ -43,18 +42,8 @@ class _OkSensorBase(CoordinatorEntity[OkChargerCoordinator], SensorEntity):
         super().__init__(coordinator)
         station = coordinator.data.station
         assert station is not None
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, station.cs_identifier)},
-            manufacturer=station.vendor or "Peblar",
-            model=station.model,
-            sw_version=station.firmware_version,
-            name=station.name,
-            serial_number=station.serial_number,
-        )
-
-    @property
-    def _station_id(self) -> str:
-        return self.coordinator.data.station.cs_identifier  # type: ignore[union-attr]
+        self._station_id = station.cs_identifier
+        self._attr_device_info = device_info_for(station)
 
 
 class CurrentPriceSensor(_OkSensorBase):

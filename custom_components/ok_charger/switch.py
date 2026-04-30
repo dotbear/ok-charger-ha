@@ -7,12 +7,11 @@ from typing import Any
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
-from .coordinator import OkChargerCoordinator
+from .coordinator import OkChargerCoordinator, device_info_for
 
 
 async def async_setup_entry(
@@ -21,7 +20,7 @@ async def async_setup_entry(
     coordinator: OkChargerCoordinator = hass.data[DOMAIN][entry.entry_id]
     if coordinator.data.station is None:
         return
-    async_add_entities([ChargeSwitch(coordinator, entry.entry_id)])
+    async_add_entities([ChargeSwitch(coordinator)])
 
 
 class ChargeSwitch(CoordinatorEntity[OkChargerCoordinator], SwitchEntity):
@@ -31,19 +30,12 @@ class ChargeSwitch(CoordinatorEntity[OkChargerCoordinator], SwitchEntity):
     _attr_name = "Charge"
     _attr_icon = "mdi:ev-station"
 
-    def __init__(self, coordinator: OkChargerCoordinator, entry_id: str) -> None:
+    def __init__(self, coordinator: OkChargerCoordinator) -> None:
         super().__init__(coordinator)
         station = coordinator.data.station
         assert station is not None
         self._attr_unique_id = f"{station.cs_identifier}_charge_switch"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, station.cs_identifier)},
-            manufacturer=station.vendor or "Peblar",
-            model=station.model,
-            sw_version=station.firmware_version,
-            name=station.name,
-            serial_number=station.serial_number,
-        )
+        self._attr_device_info = device_info_for(station)
 
     @property
     def is_on(self) -> bool:
