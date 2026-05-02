@@ -128,6 +128,19 @@ class OkChargerCoordinator(DataUpdateCoordinator[CoordinatorData]):
 
     def _compute_cheap_window(self, hours: int = DEFAULT_CHEAP_HOURS) -> None:
         prices = self._data.prices
+        now = dt.datetime.now(tz=dt.timezone.utc)
+
+        # Once a window has been picked, hold it until its end has passed.
+        # Day-ahead prices are immutable, so re-optimizing mid-cycle has no
+        # upside — and it actively breaks the automation: the start/end
+        # sensors are time-trigger sources, so shifting them forward by an
+        # hour each price refresh fires fresh start triggers and overwrites
+        # the in-flight stop trigger before it can fire.
+        prev_start = self._data.cheapest_window_start
+        prev_end = self._data.cheapest_window_end
+        if prev_start is not None and prev_end is not None and now < prev_end:
+            return
+
         self._data.cheapest_window_start = None
         self._data.cheapest_window_end = None
         self._data.cheapest_window_avg_ore = None
@@ -135,7 +148,6 @@ class OkChargerCoordinator(DataUpdateCoordinator[CoordinatorData]):
         if len(prices) < hours:
             return
 
-        now = dt.datetime.now(tz=dt.timezone.utc)
         local_now = now.astimezone()
         deadline_local = local_now.replace(
             hour=CHARGE_DEADLINE_HOUR, minute=0, second=0, microsecond=0
