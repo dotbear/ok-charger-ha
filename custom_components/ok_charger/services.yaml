@@ -1,0 +1,7 @@
+invalidate_window:
+  name: Invalidate cheap window
+  description: >-
+    Drop the cached cheapest charging window so the next price refresh picks a
+    fresh one. Useful when a start_charge attempt fires but the car isn't
+    plugged in — without this, hysteresis would hold the now-burned window
+    through the rest of its interval.
