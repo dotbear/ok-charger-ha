@@ -268,6 +268,34 @@ def test_recomputes_when_prev_end_equals_now(fixed_now):
     assert c._data.cheapest_window_end is None
 
 
+def test_invalidate_window_clears_cached_state():
+    """async_invalidate_window must drop the held window so the next refresh
+    re-picks. Used by the automation when a start_charge probe reveals the
+    car wasn't plugged in — without this, hysteresis would hold the burned
+    window through the rest of its (now wasted) interval."""
+    import asyncio
+
+    c = _coordinator()
+    c._data.cheapest_window_start = dt.datetime(2026, 5, 2, 13, tzinfo=UTC)
+    c._data.cheapest_window_end = dt.datetime(2026, 5, 2, 17, tzinfo=UTC)
+    c._data.cheapest_window_avg_ore = 80
+    c._data.last_price_refresh = dt.datetime(2026, 5, 2, 12, 30, tzinfo=UTC)
+
+    refresh_calls: list[bool] = []
+
+    async def fake_refresh():
+        refresh_calls.append(True)
+
+    c.async_request_refresh = fake_refresh
+    asyncio.run(c.async_invalidate_window())
+
+    assert c._data.cheapest_window_start is None
+    assert c._data.cheapest_window_end is None
+    assert c._data.cheapest_window_avg_ore is None
+    assert c._data.last_price_refresh is None
+    assert refresh_calls == [True]
+
+
 def test_no_slide_simulating_apr30_regression(fixed_now):
     """Replays the production sequence: at every price refresh through the
     afternoon, the previously-set window must remain at the originally-chosen

@@ -257,3 +257,16 @@ class OkChargerCoordinator(DataUpdateCoordinator[CoordinatorData]):
         self._data.station.is_charging = False
         self._data.station.charging_token = None
         self.async_set_updated_data(self._data)
+
+    async def async_invalidate_window(self) -> None:
+        """Drop the cached cheapest window and force a fresh pick.
+
+        Called when the automation tried to start charging but the car
+        wasn't actually plugged in — without this the hysteresis would
+        hold the now-burned window until its end, blocking the optimizer
+        from retargeting to the next cheap hours."""
+        self._data.cheapest_window_start = None
+        self._data.cheapest_window_end = None
+        self._data.cheapest_window_avg_ore = None
+        self._data.last_price_refresh = None
+        await self.async_request_refresh()
